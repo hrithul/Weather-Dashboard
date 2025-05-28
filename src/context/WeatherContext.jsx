@@ -7,6 +7,7 @@ const WeatherContext = createContext();
 
 export const WeatherProvider = ({ children }) => {
   const queryClient = useQueryClient();
+  const [error, setError] = useState(null);
   
   // Get last searched city from localStorage or default to 'Bangalore'
   const [city, setCity] = useState(() => {
@@ -55,9 +56,6 @@ export const WeatherProvider = ({ children }) => {
   // Combined loading state
   const loading = weatherLoading || forecastLoading;
   
-  // Combined error state
-  const error = weatherError || forecastError;
-
   // Function to fetch weather data for a new city
   const fetchWeatherData = async (cityName) => {
     if (!cityName) return;
@@ -84,6 +82,23 @@ export const WeatherProvider = ({ children }) => {
     queryClient.invalidateQueries({ queryKey: ['forecast'] });
   };
 
+  // Set error state when either weather or forecast query fails
+  useEffect(() => {
+    if (weatherError || forecastError) {
+      setError(weatherError || forecastError);
+    }
+  }, [weatherError, forecastError]);
+
+  // Clear error after 5 seconds when error changes
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   return (
     <WeatherContext.Provider
       value={{
@@ -91,6 +106,7 @@ export const WeatherProvider = ({ children }) => {
           forecast,
           loading,
           error,
+          setError,
           unit,
           toggleUnit,
           fetchWeatherData,
