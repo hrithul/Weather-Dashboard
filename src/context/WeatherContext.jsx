@@ -1,82 +1,87 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { weatherApi } from '../lib/weatherApi';
 
 // Create the context
 const WeatherContext = createContext();
 
-// API key from environment variable
-const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
-const BASE_URL = 'https://api.openweathermap.org/data/2.5';
-
 export const WeatherProvider = ({ children }) => {
-  const [city, setCity] = useState('Bangalore');
-  const [weatherData, setWeatherData] = useState(null);
-  const [forecast, setForecast] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [unit, setUnit] = useState('metric'); // 'metric' for Celsius, 'imperial' for Fahrenheit
-
-  // Always use Bangalore as the default city
-  useEffect(() => {
-    fetchWeatherData('Bangalore');
+  const queryClient = useQueryClient();
   
-  }, []);
+  // Get last searched city from localStorage or default to 'Bangalore'
+  const [city, setCity] = useState(() => {
+    return localStorage.getItem('lastSearchedCity') || 'Bangalore';
+  });
+  
+  // Get unit preference from localStorage or default to 'metric'
+  const [unit, setUnit] = useState(() => {
+    return localStorage.getItem('unitPreference') || 'metric';
+  }); // 'metric' for Celsius, 'imperial' for Fahrenheit
 
-  // Set up polling to update weather data every 30 seconds
-  useEffect(() => {
-    if (!city) return;
+  // Query for current weather data
+  const { 
+    data: weatherData, 
+    isLoading: weatherLoading, 
+    error: weatherError 
+  } = useQuery({
+    queryKey: ['currentWeather', city, unit],
+    queryFn: () => weatherApi.getCurrentWeather(city, unit),
+    enabled: !!city,
+    refetchInterval: 30000, // 30 seconds
+    staleTime: 15000, // 15 seconds
+    retry: 2,
+    onError: (error) => {
+      console.error('Error fetching weather data:', error);
+    }
+  });
 
-    // Initial fetch
-    fetchWeatherData(city);
+  // Query for forecast data
+  const { 
+    data: forecast, 
+    isLoading: forecastLoading, 
+    error: forecastError 
+  } = useQuery({
+    queryKey: ['forecast', city, unit],
+    queryFn: () => weatherApi.getForecast(city, unit),
+    enabled: !!city,
+    refetchInterval: 30000, // 30 seconds
+    staleTime: 15000, // 15 seconds
+    retry: 2,
+    onError: (error) => {
+      console.error('Error fetching forecast data:', error);
+    }
+  });
 
-    // Set up polling interval
-    const intervalId = setInterval(() => {
-      fetchWeatherData(city);
-    }, 30000); // 30 seconds
+  // Combined loading state
+  const loading = weatherLoading || forecastLoading;
+  
+  // Combined error state
+  const error = weatherError || forecastError;
 
-    // Clean up interval on component unmount or when city changes
-    return () => clearInterval(intervalId);
-  }, [city, unit]);
-
+  // Function to fetch weather data for a new city
   const fetchWeatherData = async (cityName) => {
     if (!cityName) return;
     
-    setLoading(true);
-    setError(null);
+    // Update city state
+    setCity(cityName);
     
-    try {
-      // Fetch current weather
-      const currentWeatherResponse = await axios.get(
-        `${BASE_URL}/weather?q=${cityName}&units=${unit}&appid=${API_KEY}`
-      );
-      
-      setWeatherData(currentWeatherResponse.data);
-      
-      // Fetch 5-day forecast
-      const forecastResponse = await axios.get(
-        `${BASE_URL}/forecast?q=${cityName}&units=${unit}&appid=${API_KEY}`
-      );
-      
-      setForecast(forecastResponse.data);
-      
-      // Save to localStorage
-      localStorage.setItem('lastSearchedCity', cityName);
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        'Failed to fetch weather data. Please try again.'
-      );
-      setWeatherData(null);
-      setForecast(null);
-    } finally {
-      setLoading(false);
-    }
+    // Save to localStorage
+    localStorage.setItem('lastSearchedCity', cityName);
+    
+    // Invalidate and refetch the queries
+    queryClient.invalidateQueries({ queryKey: ['currentWeather'] });
+    queryClient.invalidateQueries({ queryKey: ['forecast'] });
   };
 
-  // Search functionality removed as we only show Bangalore's weather
-
   const toggleUnit = () => {
-    setUnit(prevUnit => prevUnit === 'metric' ? 'imperial' : 'metric');
+    const newUnit = unit === 'metric' ? 'imperial' : 'metric';
+    setUnit(newUnit);
+    // Save unit preference to localStorage
+    localStorage.setItem('unitPreference', newUnit);
+    
+    // Invalidate and refetch the queries with the new unit
+    queryClient.invalidateQueries({ queryKey: ['currentWeather'] });
+    queryClient.invalidateQueries({ queryKey: ['forecast'] });
   };
 
   return (
@@ -87,7 +92,9 @@ export const WeatherProvider = ({ children }) => {
           loading,
           error,
           unit,
-          toggleUnit
+          toggleUnit,
+          fetchWeatherData,
+          city
       }}
     >
       {children}

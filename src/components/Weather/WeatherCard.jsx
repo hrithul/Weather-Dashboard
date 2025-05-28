@@ -1,6 +1,7 @@
 import { useWeather } from '../../context/WeatherContext';
 import { WiHumidity, WiStrongWind, WiDaySunny } from 'react-icons/wi';
 import { FaExchangeAlt } from 'react-icons/fa';
+import SearchBar from './SearchBar';
 
 // Helper function to process forecast data into daily forecasts
 const processForecast = (forecastData) => {
@@ -61,7 +62,7 @@ const processForecast = (forecastData) => {
 };
 
 const WeatherCard = () => {
-  const { weatherData, forecast, unit, toggleUnit } = useWeather();
+  const { weatherData, forecast, unit, toggleUnit, city } = useWeather();
 
   if (!weatherData) return null;
 
@@ -89,9 +90,11 @@ const WeatherCard = () => {
   const formattedTime = currentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
   return (
-    // <div className="bg-gradient-to-br from-blue-800/90 to-blue-600/90 backdrop-blur-md rounded-xl p-6 w-full max-w-3xl mx-auto aspect-video relative overflow-hidden text-white shadow-lg">
-    <> 
-    {/* Header */}
+   <>
+      {/* Search Bar at the top */}
+      <SearchBar />
+      
+      {/* Header */}
       <div className="flex justify-between items-start mb-2">
         <div className="text-2xl font-light tracking-wider mb-1">Weather</div>
         <div className="text-right text-sm opacity-90">
