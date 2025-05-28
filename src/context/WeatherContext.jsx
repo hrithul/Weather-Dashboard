@@ -94,7 +94,7 @@ export const WeatherProvider = ({ children }) => {
     if (error) {
       const timer = setTimeout(() => {
         setError(null);
-      }, 5000);
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [error]);

@@ -2,30 +2,28 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 
 const UserProfile = () => {
-  const { user, signOut, getFavoriteCities, removeFavoriteCity } = useAuth();
-  const [favorites, setFavorites] = useState([]);
+  const { 
+    user, 
+    signOut, 
+    favorites, 
+    loadFavorites, 
+    removeFavoriteCity 
+  } = useAuth();
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
       loadFavorites();
     }
-  }, [user]);
-
-  const loadFavorites = async () => {
-    setLoading(true);
-    const { data, error } = await getFavoriteCities();
-    if (!error && data) {
-      setFavorites(data.map(item => item.city_name));
-    }
-    setLoading(false);
-  };
+  }, [user, loadFavorites]);
 
   const handleRemoveFavorite = async (cityName) => {
+    setLoading(true);
     const { error } = await removeFavoriteCity(cityName);
     if (!error) {
-      setFavorites(favorites.filter(city => city !== cityName));
+      await loadFavorites();
     }
+    setLoading(false);
   };
 
   if (!user) return null;

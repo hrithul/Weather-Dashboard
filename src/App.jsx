@@ -12,21 +12,24 @@ import { useAuth } from './context/AuthContext';
 
 // Weather Dashboard Component
 const WeatherDashboard = () => {
-  const { loading } = useWeather();
+  const { loading, error } = useWeather();
   const { user, loading: authLoading } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
+  
+  // Show the profile button only when not loading and no errors
+  const showProfileButton = !authLoading && !loading && !error;
 
   return (
     <div className="w-full max-w-2xl">
       <ErrorMessage />
       
-      {/* Auth Status */}
-      {!authLoading && (
+      {/* Auth Status - Only show when not loading and no errors */}
+      {showProfileButton && (
         <div className="flex justify-end mb-4">
           {user ? (
             <button
               onClick={() => setShowProfile(!showProfile)}
-              className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg text-white transition-colors"
+              className="text-sm bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg text-white transition-colors "
             >
               {showProfile ? 'Hide Profile' : 'Show Profile'}
             </button>
@@ -48,7 +51,11 @@ const WeatherDashboard = () => {
         </div>
       )}
       
-      {loading ? (
+      {error ? (
+        <div className="text-center text-red-500 p-4 bg-white/10 rounded-lg">
+          <p>Error loading weather data. Please try again.</p>
+        </div>
+      ) : loading ? (
         <LoadingSpinner />
       ) : (
         <WeatherCard />

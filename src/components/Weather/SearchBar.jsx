@@ -9,6 +9,7 @@ const SearchBar = () => {
   const { isAuthenticated, saveFavoriteCity } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -21,8 +22,13 @@ const SearchBar = () => {
   const handleSaveFavorite = async () => {
     if (!city) return;
     
+    setSaveError(''); // Clear any previous errors
     const { error } = await saveFavoriteCity(city);
-    if (!error) {
+    
+    if (error) {
+      setSaveError(error.message);
+      setTimeout(() => setSaveError(''), 3000); // Clear error after 3 seconds
+    } else {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
     }
@@ -62,6 +68,13 @@ const SearchBar = () => {
           {unit === 'metric' ? <WiCelsius /> : <WiFahrenheit />}
         </button>
       </div>
+      
+      {/* Error Message */}
+      {saveError && (
+        <div className="text-red-400 text-xs mt-1 text-right animate-fade-in">
+          {saveError}
+        </div>
+      )}
       
       {/* Save Favorite Button - Only shown when user is logged in */}
       {isAuthenticated && city && (
